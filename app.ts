@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import logger from 'morgan'
 
 import indexRouter from './routes/index.js'
+import { generateToken } from './controllers/session.js'
 
 const __dirname = path.resolve();
 
@@ -19,6 +20,12 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, 'public')))
+app.use((req, res, next) => {
+    if (!req.cookies.session_token) {
+        res.cookie('session_token', generateToken())
+    }
+    next()
+})
 
 app.get('/favicon.ico', (req, res, next) => {
     next(createError(404))

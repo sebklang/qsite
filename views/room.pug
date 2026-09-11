@@ -2,7 +2,7 @@ extends layout
 
 //- INPUTS
 //- entries[] {id, name, description, diffStr}
-//- room {id, name, displayname}
+//- room {id, name, displayname, owner_token}
 //- user? {id, name, is_admin} | null
 
 block content
@@ -22,7 +22,7 @@ block content
                 .text.list-entry-description= entry.description
               .text.list-entry-secondary= entry.diffStr
             //- Delete button
-            if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token)
+            if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token || sessionToken == room.owner_token)
               form(action=`/${room.name}` method="post")
                 input#delete(type="hidden", name="delete", value="true")
                 input#roomId(type="hidden", name="roomId", value=`${room.id}`)

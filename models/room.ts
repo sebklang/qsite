@@ -3,7 +3,7 @@ import { Client } from 'pg'
 
 export async function getRoom(db: Client, roomName: string) {
     const roomQuery = await db.query(`
-        SELECT id, name, displayname FROM rooms WHERE rooms.name = $1`,
+        SELECT id, name, displayname, owner_token FROM rooms WHERE rooms.name = $1`,
         [roomName]
     )
     const room = roomQuery.rows?.[0]
@@ -58,11 +58,13 @@ export async function getUser(db: Client, roomId: bigint, token: string) {
     return user // maybe null
 }
 
-export async function insertEntry(db: Client, req: Request, userId: bigint) {
+export async function insertEntry(db: Client, req: Request, userId: bigint, token: string) {
+    console.log("at insertEntry:")
+    console.log(`    token = ${token}`)
     const query = await db.query(`
         INSERT INTO queue_entries (name, description, room_id, session_token, user_id)
         VALUES ($1, $2, $3, $4, $5)`,
-        [req.body.name, req.body.description, req.body.roomId, req.cookies.session_token, userId]
+        [req.body.name, req.body.description, req.body.roomId, token, userId]
     )
     return query
 }

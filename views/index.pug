@@ -3,5 +3,20 @@ extends layout
 //- user? {id, name, is_admin} | null
 
 block content
-  h1= title
-  p Welcome to #{title}
+  .page
+    .header
+      h1.text.title Create a new room
+    
+    form(action="/" method="POST")
+      .form-group
+        label.text.form-label(for="name") URL key. Only letters and digits. No spaces.
+        input.form-input#name(
+          type="text"
+          name="name"
+        )
+        label.text.form-label(for="displayname") Title. May contain spaces.
+        input.form-input#displayname(
+          type="text"
+          name="displayname"
+        )
+      button.button.button-primary(type="submit") Create room

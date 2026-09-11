@@ -3,6 +3,8 @@ import { agoify } from '../util/util.js'
 import { connect } from '../models/connect.js'
 import { authenticate } from '../models/authenticate.js'
 import { getRoom, getEntries, getEntry, getUser, insertEntry, deleteEntry } from '../models/room.js'
+//import { existsSession, createSession } from '../models/session.js'
+import { updateSession } from './session.js'
 
 async function roomGet (req: Request, res: Response, next: NextFunction) {
     const db = await connect()
@@ -34,7 +36,7 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
     }
 
     catch (err) {
-        console.error(err)
+        console.error(err) // todo 500
         next()
     }
 
@@ -46,10 +48,11 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
 async function roomPost(req: Request, res: Response, next: NextFunction) {
     const db = await connect()
     try {
+        const token = await updateSession(db, req, res)
         // Delete
         if (req.body.delete) {
             const entry = await getEntry(db, req.body.entryId)
-            const auth: boolean = await authenticate(db, req, entry.session_token)
+            const auth: boolean = await authenticate(db, req, entry.session_token) // TODO add room token here
             if (!auth) {
                 throw new Error('Attempted delete without authentication')
             }
@@ -59,17 +62,16 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
             }
             const query = await deleteEntry(db, entryId)
             res.redirect(req.originalUrl)
+            return
         }
 
         // Insert
         else if (!req.body.name) {
             throw new Error('name field is required')
         }
-        else {
-            const user = await getUser(db, req.body.roomId, req.cookies.session_token)
-            const query = await insertEntry(db, req, user?.id)
-            res.redirect(req.originalUrl)
-        }
+        const user = await getUser(db, req.body.roomId, token)
+        const query = await insertEntry(db, req, user?.id, token)
+        res.redirect(req.originalUrl)
     }
 
     catch (err: any) {

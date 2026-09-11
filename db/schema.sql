@@ -30,5 +30,5 @@ CREATE TABLE sessions (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     token           TEXT NOT NULL UNIQUE,
     expires_at      TIMESTAMPTZ NOT NULL,
-    user_id         BIGINT REFERENCES users(id)
+    user_id         BIGINT
 );
