@@ -21,12 +21,14 @@ CREATE TABLE queue_entries (
     name            TEXT NOT NULL,
     description     TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    room_id         BIGINT NOT NULL REFERENCES rooms(id)
+    room_id         BIGINT NOT NULL REFERENCES rooms(id),
+    user_id         BIGINT REFERENCES users(id),
+    session_token   TEXT NOT NULL REFERENCES sessions(token)
 );
 
 CREATE TABLE sessions (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     token           TEXT NOT NULL UNIQUE,
     expires_at      TIMESTAMPTZ NOT NULL,
-    user_id         BIGINT NOT NULL REFERENCES users(id)
+    user_id         BIGINT REFERENCES users(id)
 );

@@ -9,8 +9,12 @@ export function getCookie(req: Request, cookie: string) {
     return result
 }
 
-export async function authenticate(db: Client, req: Request): Promise<boolean> {
+export async function authenticate(db: Client, req: Request, entryToken?: string): Promise<boolean> {
     const token = getCookie(req, 'session_token')
+
+    if (entryToken && entryToken == token) {
+        return true
+    }
 
     const roomId = req.body.roomId
     if (!roomId) {
