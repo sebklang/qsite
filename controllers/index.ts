@@ -12,8 +12,8 @@ export async function indexPost(req: Request, res: Response, next: NextFunction)
     const expiresAt = new Date(2050, 0, 0) // 900 seconds
     try {
         const token = await updateSession(db, req, res)
-        if (!existsRoom(db, req)) {
-            res.status(200).send(`Room already exists. Click <a href=${req.originalUrl}>here</a> to go back.`)
+        if (await existsRoom(db, req)) {
+            res.render('index', { alreadyExistsWarning: true })
         }
         const roomQuery = await createRoom(db, req.body.name, req.body.displayname, token)
         res.redirect(`/${req.body.name}`)

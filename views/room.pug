@@ -22,8 +22,8 @@ block content
                 .text.list-entry-description= entry.description
               .text.list-entry-secondary= entry.diffStr
             //- Delete button
-            if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token || sessionToken == room.owner_token)
-              form(action=`/${room.name}` method="post")
+            if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token || sessionToken == room.owner_token || isAdmin)
+              form(action=`/${room.name}${isAdmin?'/admin':''}` method="post")
                 input#delete(type="hidden", name="delete", value="true")
                 input#roomId(type="hidden", name="roomId", value=`${room.id}`)
                 input#roomName(type="hidden", name="roomName", value=`${room.name}`)

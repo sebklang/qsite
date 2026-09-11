@@ -82,7 +82,8 @@ input {
     align-items: center;
     gap: 16px;
 
-    padding: 14px 18px;
+    padding: 16px 18px;
+    margin: 0px 0px;
     border-bottom: 1px solid #e5e7ea;
 }
 

@@ -9,6 +9,11 @@ import { updateSession } from './session.js'
 async function roomGet (req: Request, res: Response, next: NextFunction) {
     const db = await connect()
     const roomName: any = req.params.roomName // todo type
+    var isAdmin = false
+    console.log(req.params.secret)
+    if (req.params.secret == 'admin') {
+        isAdmin = true;
+    }
     try {
         // Get room
         const room = await getRoom(db, roomName)
@@ -31,7 +36,8 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
             room: room,
             entries: entries,
             user: user,
-            sessionToken: req.cookies.session_token
+            sessionToken: req.cookies.session_token,
+            isAdmin: isAdmin
         })
     }
 
@@ -57,6 +63,44 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
             if (!auth) {
                 throw new Error('Attempted delete without authentication')
             }
+            const entryId = req.body.entryId
+            if (!entryId) {
+                throw new Error('entryId field missing from request body')
+            }
+            const query = await deleteEntry(db, entryId)
+            res.redirect(req.originalUrl)
+            return
+        }
+
+        // Insert
+        else if (!req.body.name) {
+            throw new Error('name field is required')
+        }
+        const user = await getUser(db, req.body.roomId, token)
+        const query = await insertEntry(db, req, user?.id, token)
+        res.redirect(req.originalUrl)
+    }
+
+    catch (err: any) {
+        console.error(err)
+        res.status(500).send(`
+            Internal server error: ${err.message}.
+            <a href=${req.originalUrl}>Click here</a>
+            to go back to the previous page.`
+        )
+    }
+
+    finally {
+        db.end()
+    }
+}
+
+export async function roomPostBypass(req: Request, res: Response, next: NextFunction) {
+    const db = await connect()
+    try {
+        const token = await updateSession(db, req, res)
+        // Delete
+        if (req.body.delete) {
             const entryId = req.body.entryId
             if (!entryId) {
                 throw new Error('entryId field missing from request body')

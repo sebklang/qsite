@@ -19,6 +19,7 @@ export async function authenticate(db: Client, req: Request, entryToken?: string
         return true;
     }
 
+
     const roomId = req.body.roomId
     if (!roomId) {
         throw new Error('Room ID missing from request body') // todo
