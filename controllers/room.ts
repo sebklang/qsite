@@ -11,7 +11,7 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
     const roomName: any = req.params.roomName // todo type
     var isAdmin = false
     console.log(req.params.secret)
-    if (req.params.secret == 'admin') {
+    if (req.params.secret == 'secret') {
         isAdmin = true;
     }
     try {

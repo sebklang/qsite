@@ -23,7 +23,7 @@ block content
               .text.list-entry-secondary= entry.diffStr
             //- Delete button
             if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token || sessionToken == room.owner_token || isAdmin)
-              form(action=`/${room.name}${isAdmin?'/admin':''}` method="post")
+              form(action=`/${room.name}${isAdmin?'/secret':''}` method="post")
                 input#delete(type="hidden", name="delete", value="true")
                 input#roomId(type="hidden", name="roomId", value=`${room.id}`)
                 input#roomName(type="hidden", name="roomName", value=`${room.name}`)
@@ -33,7 +33,7 @@ block content
     //- Join queue form
     .card
       h2.text.mt-0 Join queue
-      form(action=`/${room.name}` method="POST")  
+      form(action=`/${room.name}${isAdmin?'/secret':''}` method="POST")  
         .form-group
             label.text.form-label(for="name") Name(s) / group name / desk number
             input.form-input#name(
