@@ -1,0 +1,44 @@
+extends layout
+
+block content
+  .page
+    .header
+      h1.text.title= `${room.displayname || "Unnamed queue"}`
+      p.text.subtitle #{entries.length} people waiting
+    .list
+      each entry, i in entries
+        .list-entry
+          .text.list-entry-position= i + 1
+          .list-entry-content
+            .text.list-entry-name= entry.name
+            if entry.description
+              .text.list-entry-description= entry.description
+            .text.list-entry-secondary= entry.diffStr
+          if user && user.is_admin
+            form(action=`/${room.name}` method="post")
+              input#delete(type="hidden", name="delete", value="true")
+              input#roomId(type="hidden", name="roomId", value=`${room.id}`)
+              input#entryId(type="hidden", name="entryId", value=`${entry.id}`)
+              button.button.button-danger(type="submit") Remove
+
+    .card
+      h2.text.mt-0 Join queue
+      form(action=`/${room.name}` method="POST")  
+        .form-group
+            label.text.form-label(for="name") Name(s) / group name / desk number
+            input.form-input#name(
+              type="text"
+              name="name"
+              required
+            )
+            label.text.form-label(for="description") Optional information (meeting links etc.)
+            textarea.form-input.description-input#description(
+              name="description"
+              rows="5"
+            )
+            input#roomId(
+              type="hidden"
+              name="roomId"
+              value=room.id
+            )
+        button.button.button-primary(type="submit") Join queue
