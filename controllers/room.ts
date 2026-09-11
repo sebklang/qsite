@@ -53,7 +53,7 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
         if (req.body.delete) {
             const entry = await getEntry(db, req.body.entryId)
             const room = await getRoom(db, req.body.roomName)
-            const auth: boolean = await authenticate(db, req, entry.session_token, room.owner_token) // TODO add room token here
+            const auth: boolean = await authenticate(db, req, entry.session_token, room.owner_token)
             if (!auth) {
                 throw new Error('Attempted delete without authentication')
             }
