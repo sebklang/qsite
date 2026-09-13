@@ -6,23 +6,22 @@ extends layout
 //- user? {id, name, is_admin} | null
 
 block content
+  script(src="/socket.io/socket.io.min.js")
   script(src="/javascripts/list.js")
   script.
     var entries = !{JSON.stringify(entries)}
     var room = !{JSON.stringify(room)}
-    //var user = !{user && JSON.stringify(user)}
+    var isAdmin = !{isAdmin}
 
     function setAgeSecondsInEntries(){
-      for (e of entries) {
-        e.ageSeconds = Math.floor(
+      for (const e of entries) {
+        e.ageSeconds = Math.max(0, Math.floor(
           (
             new Date().valueOf() - Date.parse(e.created_at)
           ) / 1000
-        )
+        ))
       }
     }
-
-    setAgeSecondsInEntries()
 
     function pluralize(num, str) {
       if (num != 1) return `${num} ${str}s`
@@ -55,42 +54,45 @@ block content
       return diffStr
     }
 
-    async function fetchEntries() {
-      try {
-        const result = await (await fetch(`/api/${room.name}`)).json()
-        return result
-      }
-      catch (err) {
-        console.log(err.message)
+    function renderList() {
+      const placeholder = document.getElementById('list-placeholder')
+      placeholder.innerHTML = template({
+        entries: entries,
+        room: room,
+        isAdmin: isAdmin
+      })
+
+      const timeEntries = placeholder.getElementsByClassName('list-entry-secondary')
+      for (let i = 0; i < timeEntries.length; i++) {
+        if (entries[i]) {
+          timeEntries[i].innerHTML = agoify(entries[i].ageSeconds)
+        }
       }
     }
 
-    var counter = 0
+    const socket = io()
+    socket.emit('room:join', room.name)
+    socket.on('room:update', ({ entries: newEntries }) => {
+      entries = newEntries
+      setAgeSecondsInEntries()
+      renderList()
+    })
 
-    async function updateList() {
-      if (counter % 10 == 0) {
-        const newEntries = await fetchEntries()
-        entries = newEntries
-        setAgeSecondsInEntries()
-        document.getElementById('list-placeholder').innerHTML = template({entries: entries, room: room, isAdmin: !{isAdmin}})
-        console.log(entries.length)
-        document.getElementById('nwaiting').innerHTML = `${entries.length} people waiting`
-      }
-
+    function updateList() {
+      setAgeSecondsInEntries()
       const timeEntries = document.getElementsByClassName('list-entry-secondary')
       for (let i = 0; i < timeEntries.length; i++) {
-        timeEntries[i].innerHTML = agoify(entries[i].ageSeconds)
+        if (entries[i]) {
+          timeEntries[i].innerHTML = agoify(entries[i].ageSeconds)
+        }
       }
-
-      for (const e of entries) {
-        e.ageSeconds += 1
-      }
-
-      counter++
     }
 
-    updateList()
-    setInterval(updateList, 1000)
+    window.onload = () => {
+      setAgeSecondsInEntries()
+      renderList()
+      setInterval(updateList, 1000)
+    }
 
   .page
     .header

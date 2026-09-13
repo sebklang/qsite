@@ -5,6 +5,7 @@ import { authenticate } from '../models/authenticate.js'
 import { getRoom, getEntries, getEntry, getUser, insertEntry, deleteEntry } from '../models/room.js'
 //import { existsSession, createSession } from '../models/session.js'
 import { updateSession } from './session.js'
+import { serializeEntries } from './api.js';
 
 async function roomGet (req: Request, res: Response, next: NextFunction) {
     const roomName: any = req.params.roomName // todo type
@@ -66,6 +67,12 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
                 throw new Error('entryId field missing from request body')
             }
             const query = await deleteEntry(db, entryId)
+            const entries = await getEntries(db, room.id)
+            const io = req.app.get('io')
+            io.to(room.name).emit('room:update', {
+                roomName: room.name,
+                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
+            })
             res.redirect(req.originalUrl)
             return
         }
@@ -76,6 +83,16 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
         }
         const user = await getUser(db, req.body.roomId, token)
         const query = await insertEntry(db, req, user?.id, token)
+        const roomName = Array.isArray(req.params.roomName) ? req.params.roomName[0] : req.params.roomName
+        const room = await getRoom(db, roomName)
+        if (room) {
+            const entries = await getEntries(db, room.id)
+            const io = req.app.get('io')
+            io.to(room.name).emit('room:update', {
+                roomName: room.name,
+                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
+            })
+        }
         res.redirect(req.originalUrl)
     }
 
@@ -98,7 +115,17 @@ export async function roomPostBypass(req: Request, res: Response, next: NextFunc
             if (!entryId) {
                 throw new Error('entryId field missing from request body')
             }
+            const entry = await getEntry(db, entryId)
+            const room = entry ? await getRoom(db, entry.room_id) : null
             const query = await deleteEntry(db, entryId)
+            if (room) {
+                const entries = await getEntries(db, room.id)
+                const io = req.app.get('io')
+                io.to(room.name).emit('room:update', {
+                    roomName: room.name,
+                    entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
+                })
+            }
             res.redirect(req.originalUrl)
             return
         }
@@ -109,6 +136,16 @@ export async function roomPostBypass(req: Request, res: Response, next: NextFunc
         }
         const user = await getUser(db, req.body.roomId, token)
         const query = await insertEntry(db, req, user?.id, token)
+        const roomName = Array.isArray(req.params.roomName) ? req.params.roomName[0] : req.params.roomName
+        const room = await getRoom(db, roomName)
+        if (room) {
+            const entries = await getEntries(db, room.id)
+            const io = req.app.get('io')
+            io.to(room.name).emit('room:update', {
+                roomName: room.name,
+                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
+            })
+        }
         res.redirect(req.originalUrl)
     }
 

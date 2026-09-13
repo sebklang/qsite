@@ -7,6 +7,8 @@
 import app from '../app.js'
 import debugFactory from 'debug'
 import http from 'http'
+import { Server } from 'socket.io'
+import { setupWebsocket } from '../controllers/api.js'
 
 var debug = debugFactory('qsite:server')
 
@@ -22,6 +24,9 @@ app.set('port', port)
  */
 
 var server = http.createServer(app)
+const io = new Server(server)
+app.set('io', io)
+setupWebsocket(app, io)
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -90,3 +95,5 @@ function onListening() {
     : 'port ' + addr?.port
   debug('Listening on ' + bind)
 }
+
+export default server
