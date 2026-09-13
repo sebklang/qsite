@@ -4,7 +4,25 @@ import { Request, Response, NextFunction } from 'express'
 import { getRoom, getEntries } from '../models/room.js'
 import db from '../models/db.js'
 
-export function serializeEntries(entries: any[], room: any, sessionToken?: string | null) {
+export function normalizeRoomName(roomName: string | string[] | undefined): string {
+  return Array.isArray(roomName) ? roomName[0] ?? '' : (roomName ?? '')
+}
+
+type RoomEntry = {
+  id: number
+  name: string
+  description?: string | null
+  created_at: string
+  session_token?: string | null
+}
+
+type RoomRecord = {
+  id: number
+  name: string
+  owner_token?: string | null
+}
+
+export function serializeEntries(entries: RoomEntry[], room: RoomRecord, sessionToken?: string | null) {
   return entries.map(e => ({
     id: e.id,
     name: e.name,
@@ -15,7 +33,7 @@ export function serializeEntries(entries: any[], room: any, sessionToken?: strin
 }
 
 export async function apiGetEntries(req: Request, res: Response, next: NextFunction) {
-  const roomName: any = req.params.roomName
+  const roomName = normalizeRoomName(req.params.roomName)
 
   try {
     const room = await getRoom(db, roomName)

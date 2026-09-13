@@ -3,14 +3,24 @@ import db from '../models/db.js'
 import { agoify } from '../util/util.js'
 import { authenticate } from '../models/authenticate.js'
 import { getRoom, getEntries, getEntry, getUser, insertEntry, deleteEntry } from '../models/room.js'
-//import { existsSession, createSession } from '../models/session.js'
 import { updateSession } from './session.js'
-import { serializeEntries } from './api.js';
+import { normalizeRoomName, serializeEntries } from './api.js'
+
+async function broadcastRoomUpdate(req: Request, roomName: string) {
+    const room = await getRoom(db, roomName)
+    if (!room) return
+
+    const entries = await getEntries(db, room.id)
+    const io = req.app.get('io')
+    io.to(room.name).emit('room:update', {
+        roomName: room.name,
+        entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
+    })
+}
 
 async function roomGet (req: Request, res: Response, next: NextFunction) {
-    const roomName: any = req.params.roomName // todo type
+    const roomName = normalizeRoomName(req.params.roomName)
     var isAdmin = false
-    console.log(req.params.secret)
     if (req.params.secret == 'secret') {
         isAdmin = true;
     }
@@ -23,20 +33,23 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
 
         // Get entries
         const entries = await getEntries(db, room.id)
+        const sessionToken = req.cookies.session_token
 
-        // Generate "time ago" fields
-        for (const entry of entries) {
-            entry.diffStr = agoify(entry.time_diff)
-        }
+        const entriesWithPermissions = entries.map((entry) => ({
+            ...entry,
+            isDeletable: !!sessionToken && (sessionToken === entry.session_token || sessionToken === room.owner_token),
+            diffStr: agoify(entry.time_diff)
+        }))
 
         // Get user (maybe null)
-        const user = await getUser(db, room.id, req.cookies.session_token)
+        const user = await getUser(db, room.id, sessionToken)
 
         res.render('room', {
+            title: room.displayname || 'Unnamed queue',
             room: room,
-            entries: entries,
+            entries: entriesWithPermissions,
             user: user,
-            sessionToken: req.cookies.session_token,
+            sessionToken: sessionToken,
             isAdmin: isAdmin
         })
     }
@@ -66,13 +79,8 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
             if (!entryId) {
                 throw new Error('entryId field missing from request body')
             }
-            const query = await deleteEntry(db, entryId)
-            const entries = await getEntries(db, room.id)
-            const io = req.app.get('io')
-            io.to(room.name).emit('room:update', {
-                roomName: room.name,
-                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
-            })
+            await deleteEntry(db, entryId)
+            await broadcastRoomUpdate(req, room.name)
             res.redirect(req.originalUrl)
             return
         }
@@ -82,16 +90,10 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
             throw new Error('name field is required')
         }
         const user = await getUser(db, req.body.roomId, token)
-        const query = await insertEntry(db, req, user?.id, token)
-        const roomName = Array.isArray(req.params.roomName) ? req.params.roomName[0] : req.params.roomName
-        const room = await getRoom(db, roomName)
-        if (room) {
-            const entries = await getEntries(db, room.id)
-            const io = req.app.get('io')
-            io.to(room.name).emit('room:update', {
-                roomName: room.name,
-                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
-            })
+        await insertEntry(db, req, user?.id, token)
+        const roomName = normalizeRoomName(req.params.roomName)
+        if (roomName) {
+            await broadcastRoomUpdate(req, roomName)
         }
         res.redirect(req.originalUrl)
     }
@@ -115,16 +117,11 @@ export async function roomPostBypass(req: Request, res: Response, next: NextFunc
             if (!entryId) {
                 throw new Error('entryId field missing from request body')
             }
-            const entry = await getEntry(db, entryId)
-            const room = entry ? await getRoom(db, entry.room_id) : null
-            const query = await deleteEntry(db, entryId)
+            const roomName = normalizeRoomName(req.body.roomName ?? req.params.roomName)
+            const room = roomName ? await getRoom(db, roomName) : null
+            await deleteEntry(db, entryId)
             if (room) {
-                const entries = await getEntries(db, room.id)
-                const io = req.app.get('io')
-                io.to(room.name).emit('room:update', {
-                    roomName: room.name,
-                    entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
-                })
+                await broadcastRoomUpdate(req, room.name)
             }
             res.redirect(req.originalUrl)
             return
@@ -135,16 +132,10 @@ export async function roomPostBypass(req: Request, res: Response, next: NextFunc
             throw new Error('name field is required')
         }
         const user = await getUser(db, req.body.roomId, token)
-        const query = await insertEntry(db, req, user?.id, token)
-        const roomName = Array.isArray(req.params.roomName) ? req.params.roomName[0] : req.params.roomName
-        const room = await getRoom(db, roomName)
-        if (room) {
-            const entries = await getEntries(db, room.id)
-            const io = req.app.get('io')
-            io.to(room.name).emit('room:update', {
-                roomName: room.name,
-                entries: serializeEntries(entries, room, req.cookies.session_token ?? null)
-            })
+        await insertEntry(db, req, user?.id, token)
+        const roomName = normalizeRoomName(req.params.roomName)
+        if (roomName) {
+            await broadcastRoomUpdate(req, roomName)
         }
         res.redirect(req.originalUrl)
     }

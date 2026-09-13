@@ -22,7 +22,7 @@ export async function authenticate(db: Database, req: Request, entryToken?: stri
 
     const roomId = req.body.roomId
     if (!roomId) {
-        throw new Error('Room ID missing from request body') // todo
+        throw new Error('Room ID missing from request body')
     }
 
     const user = await db.get(`

@@ -35,12 +35,11 @@ app.use('/', indexRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-    console.log(`Final 404: ${req.url}`)
     next(createError(404))
 })
 
 // error handler
-app.use(function(err: any, req: Request, res: Response, next: NextFunction) {
+app.use(function(err: Error & { status?: number }, req: Request, res: Response, next: NextFunction) {
     // set locals, only providing error in development
     res.locals.message = err.message
     res.locals.error = req.app.get('env') === 'development' ? err : {}
