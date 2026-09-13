@@ -1,5 +1,5 @@
 import { Request , Response } from 'express'
-import { Client } from 'pg'
+import { Database } from 'sqlite'
 import { insertSession, getSession, deleteSession } from '../models/session.js'
 import crypto from 'crypto'
 
@@ -7,7 +7,7 @@ export function generateToken() {
     return crypto.randomBytes(32).toString('hex')
 }
 
-export async function updateSession(db: Client, req: Request, res: Response) {
+export async function updateSession(db: Database, req: Request, res: Response) {
     var token = req.cookies.session_token
     const session = await getSession(db, token)
     const expired = new Date() > session?.expires_at

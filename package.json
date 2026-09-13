@@ -18,7 +18,10 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "pg": "^8.23.0",
-    "pug": "^3.0.4"
+    "pug": "^3.0.4",
+    "pug-runtime": "^3.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1"
   },
   "type": "module",
   "devDependencies": {

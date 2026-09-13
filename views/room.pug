@@ -1,37 +1,123 @@
 extends layout
 
 //- INPUTS
-//- entries[] {id, name, description, diffStr}
+//- entries[] {id, name, description, created_at}
 //- room {id, name, displayname, owner_token}
 //- user? {id, name, is_admin} | null
 
 block content
+  script(src="/javascripts/list.js")
+  script.
+    var entries = !{JSON.stringify(entries)}
+    var room = !{JSON.stringify(room)}
+    //var user = !{user && JSON.stringify(user)}
+
+    function setAgeSecondsInEntries(){
+      for (e of entries) {
+        e.ageSeconds = Math.floor(
+          (
+            new Date().valueOf() - Date.parse(e.created_at)
+          ) / 1000
+        )
+      }
+    }
+
+    setAgeSecondsInEntries()
+
+    function pluralize(num, str) {
+      if (num != 1) return `${num} ${str}s`
+      else return `1 ${str}`
+    }
+
+    function agoify(diff) {
+      let diffStr = ""
+
+      const days = Math.floor(diff / 3600 / 24)
+      diff -= days * 24 * 3600
+      const hours = Math.floor(diff / 3600)
+      diff -= hours * 3600
+      const minutes = Math.floor(diff / 60)
+      diff -= minutes * 60
+      const seconds = Math.floor(diff)
+
+      if (days > 0)
+          diffStr = `${pluralize(days, "day")}`
+      else if (hours > 0)
+          diffStr = `${pluralize(hours, "hour")} ${pluralize(minutes, "minute")}`
+      else if (minutes > 0)
+          diffStr = `${pluralize(minutes, "minute")}`
+      else if (seconds)
+          diffStr = `${pluralize(seconds, "second")}`
+      else
+          diffStr = 'now'
+      if (diffStr != 'now')
+          diffStr += ' ago'
+      return diffStr
+    }
+
+    async function fetchEntries() {
+      try {
+        const result = await (await fetch(`/api/${room.name}`)).json()
+        return result
+      }
+      catch (err) {
+        console.log(err.message)
+      }
+    }
+
+    var counter = 0
+
+    async function updateList() {
+      if (counter % 10 == 0) {
+        const newEntries = await fetchEntries()
+        entries = newEntries
+        setAgeSecondsInEntries()
+        document.getElementById('list-placeholder').innerHTML = template({entries: entries, room: room, isAdmin: !{isAdmin}})
+        console.log(entries.length)
+        document.getElementById('nwaiting').innerHTML = `${entries.length} people waiting`
+      }
+
+      const timeEntries = document.getElementsByClassName('list-entry-secondary')
+      for (let i = 0; i < timeEntries.length; i++) {
+        timeEntries[i].innerHTML = agoify(entries[i].ageSeconds)
+      }
+
+      for (const e of entries) {
+        e.ageSeconds += 1
+      }
+
+      counter++
+    }
+
+    updateList()
+    setInterval(updateList, 1000)
+
   .page
     .header
       h1.text.title= `${room.displayname || "Unnamed queue"}`
-      p.text.subtitle #{entries.length} people waiting
-    if entries.length > 0
+      p.text.subtitle#nwaiting #{entries.length} people waiting
+    #list-placeholder
       .list
         each entry, i in entries
-          //- Queue entry
           .list-entry
             .text.list-entry-position= i + 1
             .list-entry-content
               .text.list-entry-name= entry.name
               if entry.description
                 .text.list-entry-description= entry.description
-              .text.list-entry-secondary= entry.diffStr
+              .text.list-entry-secondary= entry.ageSeconds
             //- Delete button
-            if (user && (user.is_admin || user.id == entry.user_id) || sessionToken == entry.session_token || sessionToken == room.owner_token || isAdmin)
+            if (entry.isDeletable || isAdmin)
               form(action=`/${room.name}${isAdmin?'/secret':''}` method="post")
                 input#delete(type="hidden", name="delete", value="true")
                 input#roomId(type="hidden", name="roomId", value=`${room.id}`)
                 input#roomName(type="hidden", name="roomName", value=`${room.name}`)
                 input#entryId(type="hidden", name="entryId", value=`${entry.id}`)
                 button.button.button-primary(type="submit") Finished
+    
 
     //- Join queue form
-    .card
+    .card()
       h2.text.mt-0 Join queue
       form(action=`/${room.name}${isAdmin?'/secret':''}` method="POST")  
         .form-group

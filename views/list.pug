@@ -1,0 +1,21 @@
+//- entries[] {id, name, description, isDeletable, ageSeconds}
+//- room {id, name}
+//- isAdmin
+
+.list
+  each entry, i in entries
+    .list-entry
+      .text.list-entry-position= i + 1
+      .list-entry-content
+        .text.list-entry-name= entry.name
+        if entry.description
+          .text.list-entry-description= entry.description
+        .text.list-entry-secondary= entry.ageSeconds
+      //- Delete button
+      if (entry.isDeletable || isAdmin)
+        form(action=`/${room.name}${isAdmin?'/secret':''}` method="post")
+          input#delete(type="hidden", name="delete", value="true")
+          input#roomId(type="hidden", name="roomId", value=`${room.id}`)
+          input#roomName(type="hidden", name="roomName", value=`${room.name}`)
+          input#entryId(type="hidden", name="entryId", value=`${entry.id}`)
+          button.button.button-primary(type="submit") Finished

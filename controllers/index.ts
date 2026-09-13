@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { connect } from '../models/connect.js'
+import db from '../models/db.js'
 import { existsRoom, createRoom } from '../models/index.js'
 import { updateSession } from '../controllers/session.js'
 
@@ -8,7 +8,6 @@ export function indexGet(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function indexPost(req: Request, res: Response, next: NextFunction) {
-    const db = await connect()
     const expiresAt = new Date(2050, 0, 0) // 900 seconds
     try {
         const token = await updateSession(db, req, res)
@@ -22,9 +21,5 @@ export async function indexPost(req: Request, res: Response, next: NextFunction)
     catch (err) {
         console.error(err)
         next()
-    }
-
-    finally {
-        db.end()
     }
 }

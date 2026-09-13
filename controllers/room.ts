@@ -1,13 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
+import db from '../models/db.js'
 import { agoify } from '../util/util.js'
-import { connect } from '../models/connect.js'
 import { authenticate } from '../models/authenticate.js'
 import { getRoom, getEntries, getEntry, getUser, insertEntry, deleteEntry } from '../models/room.js'
 //import { existsSession, createSession } from '../models/session.js'
 import { updateSession } from './session.js'
 
 async function roomGet (req: Request, res: Response, next: NextFunction) {
-    const db = await connect()
     const roomName: any = req.params.roomName // todo type
     var isAdmin = false
     console.log(req.params.secret)
@@ -45,20 +44,19 @@ async function roomGet (req: Request, res: Response, next: NextFunction) {
         console.error(err) // todo 500
         next()
     }
-
-    finally {
-        db.end()
-    }
 }
 
 async function roomPost(req: Request, res: Response, next: NextFunction) {
-    const db = await connect()
     try {
         const token = await updateSession(db, req, res)
         // Delete
         if (req.body.delete) {
             const entry = await getEntry(db, req.body.entryId)
             const room = await getRoom(db, req.body.roomName)
+            if (!entry || !room) {
+                res.redirect(req.originalUrl)
+                return
+            }
             const auth: boolean = await authenticate(db, req, entry.session_token, room.owner_token)
             if (!auth) {
                 throw new Error('Attempted delete without authentication')
@@ -89,14 +87,9 @@ async function roomPost(req: Request, res: Response, next: NextFunction) {
             to go back to the previous page.`
         )
     }
-
-    finally {
-        db.end()
-    }
 }
 
 export async function roomPostBypass(req: Request, res: Response, next: NextFunction) {
-    const db = await connect()
     try {
         const token = await updateSession(db, req, res)
         // Delete
@@ -126,10 +119,6 @@ export async function roomPostBypass(req: Request, res: Response, next: NextFunc
             <a href=${req.originalUrl}>Click here</a>
             to go back to the previous page.`
         )
-    }
-
-    finally {
-        db.end()
     }
 }
 

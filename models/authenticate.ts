@@ -1,5 +1,5 @@
 import { Request } from 'express'
-import { Client } from 'pg'
+import { Database } from 'sqlite'
 
 export function getCookie(req: Request, cookie: string) {
     const result = req.cookies[cookie]
@@ -9,7 +9,7 @@ export function getCookie(req: Request, cookie: string) {
     return result
 }
 
-export async function authenticate(db: Client, req: Request, entryToken?: string, roomToken?: string): Promise<boolean> {
+export async function authenticate(db: Database, req: Request, entryToken?: string, roomToken?: string): Promise<boolean> {
     const token = getCookie(req, 'session_token')
 
     if (entryToken && entryToken == token) {
@@ -25,27 +25,25 @@ export async function authenticate(db: Client, req: Request, entryToken?: string
         throw new Error('Room ID missing from request body') // todo
     }
 
-    const userQuery = await db.query(`
+    const user = await db.get(`
         SELECT users.id
         FROM users
         JOIN sessions
         ON users.id = sessions.user_id
-        WHERE sessions.token = $1`,
+        WHERE sessions.token = ?1`,
         [token]
     )
-    const user = userQuery.rows?.[0]
     if (!user) {
         throw new Error('User with given token not found')
     }
 
-    const adminQuery = await db.query(`
+    const admin = await db.get(`
         SELECT is_admin
         FROM user_rooms
-        WHERE user_id = $1
-        AND   room_id = $2`,
+        WHERE user_id = ?1
+        AND   room_id = ?2`,
         [user.id, roomId]
     )
-    const admin = adminQuery.rows?.[0]?.is_admin
     if (!admin) {
         return false
     }
