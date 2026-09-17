@@ -132,7 +132,7 @@ block content
       h2.text.mt-0 Join queue
       form(action=`/${room.name}${isAdmin?'/secret':''}` method="POST")  
         .form-group
-            label.text.form-label(for="name") Name(s) / group name / desk number
+            label.text.form-label(for="name") Name / room / desk
             input.form-input#name(
               type="text"
               name="name"
